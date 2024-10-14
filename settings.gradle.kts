@@ -1,1 +1,1 @@
-rootProject.name = "Minigit"
+rootProject.name = "MiniGit"

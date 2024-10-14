@@ -1,5 +1,8 @@
 package com.cloudchamb3r.minigit
 
 interface GitRepoOwnable {
-    fun listRepositories() : List<GitRepo>
+    // list all repository of owner
+    fun listRepositories(): List<GitRepo>
+    // list repository of owner that matches name
+    fun getRepository(name: String): GitRepo?
 }

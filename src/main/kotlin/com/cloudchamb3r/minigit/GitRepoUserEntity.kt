@@ -16,14 +16,14 @@ class GitRepoUserEntity(
     @field:EmbeddedId
     val id: GitRepoUserId,
     @field:ManyToOne
-    @field:MapsId("id")
-    @JoinColumn(name = "id")
+    @field:MapsId("userId")
+    @field:JoinColumn(name = "userId")
     val user: UserEntity,
     @field:ManyToOne
-    @field:MapsId("id")
-    @JoinColumn(name = "id")
+    @field:MapsId("repoId")
+    @field:JoinColumn(name = "repoId")
     val repo: GitRepoEntity,
-    @Enumerated(EnumType.STRING)
+    @field:Enumerated(EnumType.STRING)
     val role: GitRepoUserRole,
 ): Serializable {
 

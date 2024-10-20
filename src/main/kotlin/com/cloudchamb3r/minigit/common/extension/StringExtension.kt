@@ -1,4 +1,4 @@
-package com.cloudchamb3r.minigit.extension
+package com.cloudchamb3r.minigit.common.extension
 
 import org.springframework.beans.factory.annotation.Value
 import java.net.URI

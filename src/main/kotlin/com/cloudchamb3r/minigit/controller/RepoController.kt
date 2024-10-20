@@ -1,5 +1,6 @@
 package com.cloudchamb3r.minigit.controller
 
+import com.cloudchamb3r.minigit.common.annotation.ToLower
 import com.cloudchamb3r.minigit.service.RepoService
 import com.cloudchamb3r.minigit.service.vo.RepoVO
 import org.slf4j.Logger
@@ -15,7 +16,8 @@ class RepoController(
     val log: Logger = LoggerFactory.getLogger(RepoController::class.java)
 
     @GetMapping("/{owner}/{repo}")
-    fun getRepo(@PathVariable owner: String, @PathVariable repo: String): ResponseEntity<RepoVO> {
+    fun getRepo(@ToLower @PathVariable owner: String, @ToLower @PathVariable repo: String): ResponseEntity<RepoVO> {
+        log.info("get repo: {} {}", owner, repo)
         return ResponseEntity.ok(repoService.getRepo(owner, repo))
     }
 
@@ -25,17 +27,17 @@ class RepoController(
     }
 
     @GetMapping("/{owner}")
-    fun listOwnerRepos(@PathVariable owner: String): ResponseEntity<List<RepoVO>> {
+    fun listOwnerRepos(@ToLower @PathVariable owner: String): ResponseEntity<List<RepoVO>> {
         return ResponseEntity.ok(repoService.listOwnerRepos(owner))
     }
 
     @PostMapping("/{owner}/{repo}")
-    fun createRepo(@PathVariable owner: String, @PathVariable repo: String): ResponseEntity<Boolean> {
+    fun createRepo(@ToLower @PathVariable owner: String, @ToLower @PathVariable repo: String): ResponseEntity<Boolean> {
         return ResponseEntity.ok(repoService.createRepo(owner, repo))
     }
 
     @DeleteMapping("/{owner}/{repo}")
-    fun deleteRepo(@PathVariable owner: String, @PathVariable repo: String) {
+    fun deleteRepo(@ToLower @PathVariable owner: String, @ToLower @PathVariable repo: String) {
         repoService.deleteRepo(owner, repo)
     }
 }

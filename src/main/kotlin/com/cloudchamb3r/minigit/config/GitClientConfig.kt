@@ -9,11 +9,5 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class GitClientConfig {
     @Bean
-    fun gitClientSupplier(): GitClientSupplier {
-        return object :GitClientSupplier {
-            override fun get(): GitClient {
-                return JGitClient()
-            }
-        }
-    }
+    fun gitClientSupplier(): GitClientSupplier =  GitClientSupplier { JGitClient() }
 }

@@ -4,8 +4,11 @@ import com.cloudchamb3r.minigit.service.vo.GitAuthorVO
 import com.cloudchamb3r.minigit.service.vo.GitFileVO
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.dircache.DirCacheEntry
+import org.eclipse.jgit.internal.storage.pack.PackOutputStream
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.FileMode
+import org.eclipse.jgit.transport.PacketLineOut
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 class JGitClient: GitClient {

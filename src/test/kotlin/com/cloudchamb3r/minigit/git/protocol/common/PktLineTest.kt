@@ -41,8 +41,26 @@ class PktLineTest {
         // larger than 0xffff
         assertThrows(AssertionError::class.java) {
             val len = 0x10000
-            val value = (0..len-4).map { '0'.code.toByte() }.toByteArray()
+            val value = (1..len-4).map { '0'.code.toByte() }.toByteArray()
             PktLine(len,  value)
+        }
+    }
+
+    @Test
+    fun notThrowIfValid() {
+        // normal
+        assertDoesNotThrow {
+            val len = 0x1234
+            val value = (1..len-4).map { '0'.code.toByte() }.toByteArray()
+            PktLine(len, value)
+        }
+
+        assertDoesNotThrow {
+            PktLine.flushPkt()
+        }
+
+        assertDoesNotThrow {
+            PktLine.fromStringPayload("hello")
         }
     }
 }

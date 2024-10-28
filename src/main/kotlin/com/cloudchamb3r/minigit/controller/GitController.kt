@@ -1,5 +1,6 @@
 package com.cloudchamb3r.minigit.controller
 
+import com.cloudchamb3r.minigit.common.extension.toStreamingResponseBody
 import com.cloudchamb3r.minigit.repository.entity.RepoRepository
 import com.cloudchamb3r.minigit.service.GitService
 import org.slf4j.LoggerFactory
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
+import java.io.OutputStream
 import javax.print.attribute.standard.Media
 // refs. https://git-scm.com/docs/http-protocol/2.34.0
 @RestController
@@ -24,24 +27,36 @@ class GitController(
 
     // TODO: Return type should be changed
     @GetMapping("/{owner}/{repo}/info/refs")
-    fun getRefs(@PathVariable owner: String, @PathVariable repo: String, service: String?): ResponseEntity<String> {
-        return gitService.transfer(owner, repo).let {
+    fun getRefs(@PathVariable owner: String, @PathVariable repo: String, service: String?): ResponseEntity<StreamingResponseBody?> {
+        val transfer = gitService.transfer(owner, repo)
+
+        val responseData =  transfer.let {
             when (service) {
-                "git-upload-pack" -> {
-                    val infoUploadPackHeader = HttpHeaders().apply {
-                        contentType = MediaType("application/x-git-upload-pack-advertisement")
-                    }
-                    ResponseEntity(it.infoUploadPack(), infoUploadPackHeader, HttpStatus.OK)
+                "git-upload-pack" -> it.infoUploadPack()
+                "git-receive-pack" -> it.infoReceivePack()
+                else -> it.infoRefs() // dumb protocol
+            }
+        }.toStreamingResponseBody()
+
+        val responseHeader = transfer.let {
+            when (service) {
+                "git-upload-pack" -> HttpHeaders().apply {
+                    contentType = MediaType("application", "x-git-upload-pack-advertisement")
+                    cacheControl = "no-cache"
                 }
-                "git-receive-pack" -> {
-                    val infoReceivePackHeader = HttpHeaders().apply {
-                        contentType = MediaType("application/x-git-receive-pack-advertisement")
-                    }
-                    ResponseEntity(it.infoReceivePack(), infoReceivePackHeader, HttpStatus.OK)
+                "git-receive-pack" -> HttpHeaders().apply {
+                    contentType = MediaType("application", "x-git-receive-pack-advertisement")
+                    cacheControl = "no-cache"
                 }
-                else -> ResponseEntity(it.infoRefs(), HttpStatus.OK) // dumb protocol
+                else -> HttpHeaders().apply { contentType = MediaType.TEXT_PLAIN }
             }
         }
+
+        return ResponseEntity(
+            responseData,
+            responseHeader,
+            HttpStatus.OK
+        )
     }
 
     @GetMapping("/{owner}/{repo}/HEAD")

@@ -4,13 +4,10 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.transport.PacketLineOut
 import org.eclipse.jgit.transport.ReceivePack
 import org.eclipse.jgit.transport.RefAdvertiser
+import org.eclipse.jgit.transport.UploadPack
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
-import java.io.BufferedInputStream
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.nio.charset.Charset
 
 class JGitTransfer: GitTransfer {
     companion object {
@@ -24,8 +21,8 @@ class JGitTransfer: GitTransfer {
         return this
     }
 
-    override fun infoRefs(): String {
-        return git.repository.refDatabase.refs.joinToString { "," }
+    override fun infoRefs(): ByteArray {
+        return git.repository.refDatabase.refs.joinToString { "\n" }.toByteArray()
     }
 
     override fun head(): String {
@@ -48,17 +45,35 @@ class JGitTransfer: GitTransfer {
         TODO("Not yet implemented")
     }
 
-    override fun infoReceivePack(): String {
+    override fun infoReceivePack(): ByteArray {
+        val byteOutputStream = ByteArrayOutputStream()
+
+        // write info receive pack response
+        byteOutputStream.write("001f# service=git-receive-pack\n".toByteArray())
+        byteOutputStream.write("0000".toByteArray())
+
         val receivePack = ReceivePack(git.repository)
-        val byteOutStream = ByteArrayOutputStream()
-        val packetLineOut = PacketLineOut(byteOutStream)
-        val advertiser = RefAdvertiser.PacketLineOutRefAdvertiser(packetLineOut)
+        val advertiser = RefAdvertiser.PacketLineOutRefAdvertiser(PacketLineOut(byteOutputStream))
         receivePack.sendAdvertisedRefs(advertiser)
-        return byteOutStream.toString(Charset.defaultCharset())
+
+        byteOutputStream.write("0000".toByteArray())
+        return byteOutputStream.toByteArray()
     }
 
-    override fun infoUploadPack(): String {
-        TODO("Not yet implemented")
+    override fun infoUploadPack(): ByteArray {
+        val byteOutputStream = ByteArrayOutputStream()
+        val repo = git.repository
+
+        // write info upload pack response
+        byteOutputStream.write("001e# service=git-upload-pack\n".toByteArray())
+        byteOutputStream.write("0000".toByteArray())
+
+       for ((oid, ref) in repo.allRefsByPeeledObjectId) {
+            log.info("oid, ref : {} {}", oid, ref)
+       }
+
+        byteOutputStream.write("0000".toByteArray())
+        return byteOutputStream.toByteArray()
     }
 
     override fun handleReceivePack(): String {

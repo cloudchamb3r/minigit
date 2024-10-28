@@ -14,6 +14,8 @@ interface GitTransfer {
     fun objectsInfoPack(packId: String): ByteArray
 
     // smart protocol
-    fun gitReceivePack(): String
-    fun gitUploadPack(): String
+    fun infoReceivePack(): String
+    fun infoUploadPack(): String
+    fun handleReceivePack(): String
+    fun handleUploadPack(): String
 }

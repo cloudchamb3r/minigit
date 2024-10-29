@@ -1,28 +1,23 @@
 package com.cloudchamb3r.minigit.git.transfer
 
 import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.transport.PacketLineOut
-import org.eclipse.jgit.transport.ReceivePack
-import org.eclipse.jgit.transport.RefAdvertiser
-import org.eclipse.jgit.transport.UploadPack
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayOutputStream
 import java.io.File
 
-class JGitTransfer: GitTransfer {
+class JGitTransfer : GitTransfer {
     companion object {
         private val log = LoggerFactory.getLogger(JGitTransfer::class.java)
     }
 
-    private lateinit var git : Git
+    private lateinit var git: Git
 
     override fun on(dir: File): GitTransfer {
         git = Git.open(dir)
         return this
     }
 
-    override fun infoRefs(): ByteArray {
-        return git.repository.refDatabase.refs.joinToString { "\n" }.toByteArray()
+    override fun infoRefs(): Sequence<ByteArray> = sequence {
+        yield(git.repository.refDatabase.refs.joinToString { "\n" }.toByteArray())
     }
 
     override fun head(): String {
@@ -45,35 +40,36 @@ class JGitTransfer: GitTransfer {
         TODO("Not yet implemented")
     }
 
-    override fun infoReceivePack(): ByteArray {
-        val byteOutputStream = ByteArrayOutputStream()
+    override fun infoReceivePack(): Sequence<ByteArray> = sequence {
 
         // write info receive pack response
-        byteOutputStream.write("001f# service=git-receive-pack\n".toByteArray())
-        byteOutputStream.write("0000".toByteArray())
+        yield("001f# service=git-receive-pack\n".toByteArray())
+        yield("0000".toByteArray())
 
-        val receivePack = ReceivePack(git.repository)
-        val advertiser = RefAdvertiser.PacketLineOutRefAdvertiser(PacketLineOut(byteOutputStream))
-        receivePack.sendAdvertisedRefs(advertiser)
+//        val receivePack = ReceivePack(git.repository)
+//        val advertiser = RefAdvertiser.PacketLineOutRefAdvertiser(PacketLineOut(byteOutputStream))
+//        receivePack.sendAdvertisedRefs(advertiser)
 
-        byteOutputStream.write("0000".toByteArray())
-        return byteOutputStream.toByteArray()
+        yield("0000".toByteArray())
     }
 
-    override fun infoUploadPack(): ByteArray {
-        val byteOutputStream = ByteArrayOutputStream()
+    override fun infoUploadPack(): Sequence<ByteArray> = sequence {
+        log.info("info upload pack called")
         val repo = git.repository
 
         // write info upload pack response
-        byteOutputStream.write("001e# service=git-upload-pack\n".toByteArray())
-        byteOutputStream.write("0000".toByteArray())
+        log.info("yield content header")
+        yield("001e# service=git-upload-pack\n".toByteArray())
 
-       for ((oid, ref) in repo.allRefsByPeeledObjectId) {
+        log.info("yield start flush")
+        yield("0000".toByteArray())
+
+        for ((oid, ref) in repo.allRefsByPeeledObjectId) {
             log.info("oid, ref : {} {}", oid, ref)
-       }
+        }
 
-        byteOutputStream.write("0000".toByteArray())
-        return byteOutputStream.toByteArray()
+        log.info("yield end flush")
+        yield("0000".toByteArray())
     }
 
     override fun handleReceivePack(): String {
@@ -83,4 +79,5 @@ class JGitTransfer: GitTransfer {
     override fun handleUploadPack(): String {
         TODO("Not yet implemented")
     }
+
 }

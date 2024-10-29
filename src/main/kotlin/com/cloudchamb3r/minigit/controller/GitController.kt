@@ -1,8 +1,10 @@
 package com.cloudchamb3r.minigit.controller
 
-import com.cloudchamb3r.minigit.common.extension.toStreamingResponseBody
 import com.cloudchamb3r.minigit.repository.entity.RepoRepository
 import com.cloudchamb3r.minigit.service.GitService
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flow
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -12,51 +14,45 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
-import java.io.OutputStream
-import javax.print.attribute.standard.Media
+import reactor.core.publisher.Mono
+
 // refs. https://git-scm.com/docs/http-protocol/2.34.0
 @RestController
 class GitController(
     private val repoRepository: RepoRepository,
     private val gitService: GitService,
 ) {
-    companion object{
+    companion object {
         private val logger = LoggerFactory.getLogger(GitController::class.java)
     }
 
-    // TODO: Return type should be changed
     @GetMapping("/{owner}/{repo}/info/refs")
-    fun getRefs(@PathVariable owner: String, @PathVariable repo: String, service: String?): ResponseEntity<StreamingResponseBody?> {
+    fun getRefs(@PathVariable owner: String, @PathVariable repo: String, service: String?): Mono<ResponseEntity<Sequence<ByteArray>>> {
         val transfer = gitService.transfer(owner, repo)
 
-        val responseData =  transfer.let {
-            when (service) {
-                "git-upload-pack" -> it.infoUploadPack()
-                "git-receive-pack" -> it.infoReceivePack()
-                else -> it.infoRefs() // dumb protocol
-            }
-        }.toStreamingResponseBody()
-
-        val responseHeader = transfer.let {
-            when (service) {
-                "git-upload-pack" -> HttpHeaders().apply {
-                    contentType = MediaType("application", "x-git-upload-pack-advertisement")
-                    cacheControl = "no-cache"
-                }
-                "git-receive-pack" -> HttpHeaders().apply {
-                    contentType = MediaType("application", "x-git-receive-pack-advertisement")
-                    cacheControl = "no-cache"
-                }
-                else -> HttpHeaders().apply { contentType = MediaType.TEXT_PLAIN }
-            }
+        val responseSequence = when (service) {
+            "git-upload-pack" -> transfer.infoUploadPack()
+            "git-receive-pack" -> transfer.infoReceivePack()
+            else -> transfer.infoRefs()
         }
 
-        return ResponseEntity(
-            responseData,
-            responseHeader,
-            HttpStatus.OK
-        )
+        val responseHeader = when (service) {
+            "git-upload-pack" -> HttpHeaders().apply {
+                contentType = MediaType("application", "x-git-upload-pack-advertisement")
+                cacheControl = "no-cache"
+            }
+            "git-receive-pack" -> HttpHeaders().apply {
+                contentType = MediaType("application", "x-git-receive-pack-advertisement")
+                cacheControl = "no-cache"
+            }
+            else -> HttpHeaders().apply { contentType = MediaType.TEXT_PLAIN }
+        }
+
+        return Mono.create {
+            it.success(
+                ResponseEntity(responseSequence, responseHeader, HttpStatus.OK)
+            )
+        }
     }
 
     @GetMapping("/{owner}/{repo}/HEAD")
@@ -75,4 +71,23 @@ class GitController(
         val transfer = gitService.transfer(owner, repo)
         return ResponseEntity(transfer.handleUploadPack(), HttpStatus.OK)
     }
+    // for test only
+//    @GetMapping("/flow-test")
+//    fun flowTest(): Mono<ResponseEntity<Sequence<String>>> {
+//        val header = HttpHeaders().apply {
+//            contentType = MediaType("application", "x-flow-test")
+//        }
+//        return Mono.create {
+//            it.success(
+//                ResponseEntity.ok()
+//                    .headers(header)
+//                    .body(
+//                        sequence {
+//                            yield("a1")
+//                            yield("b2")
+//                        }
+//                    )
+//            )
+//        }
+//    }
 }

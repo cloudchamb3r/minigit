@@ -7,7 +7,7 @@ interface GitTransfer {
     fun on(dir: File): GitTransfer
 
     // dumb protocol
-    fun infoRefs(): ByteArray
+    fun infoRefs(): Sequence<ByteArray>
     fun head(): String
     fun objects(commit: String): ByteArray
     fun objectsInfoAlternatives(): String
@@ -15,8 +15,8 @@ interface GitTransfer {
     fun objectsInfoPack(packId: String): ByteArray
 
     // smart protocol
-    fun infoReceivePack(): ByteArray
-    fun infoUploadPack(): ByteArray
+    fun infoReceivePack(): Sequence<ByteArray>
+    fun infoUploadPack(): Sequence<ByteArray>
     fun handleReceivePack(): String
     fun handleUploadPack(): String
 }
